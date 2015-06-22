@@ -548,7 +548,8 @@ class ReportAdmin(object):
 
 
     def get_form_filter(self, request):
-        form_fields = fields_for_model(self.model, [f for f in self.get_query_field_names() if f in self.list_filter])
+        #form_fields = fields_for_model(self.model, [f for f in self.get_query_field_names() if f in self.list_filter])
+        form_fields = fields_for_model(self.model, [f for f in self.list_filter])
         if not form_fields:
             form_fields = {
                 '__all__': forms.BooleanField(label='', widget=forms.HiddenInput, initial='1')
@@ -560,8 +561,7 @@ class ReportAdmin(object):
                     pre_field = None
                     base_model = self.model
                     if '__' in k:
-                        for field_lookup in k.split("__")[:-1]:
-                        # for field_lookup in k.split("__"):
+                        for field_lookup in k.split("__"):
                             if pre_field:
                                 if isinstance(pre_field, ForeignObjectRel):
                                     base_model = pre_field.model
