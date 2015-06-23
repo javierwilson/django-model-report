@@ -599,7 +599,7 @@ class ReportAdmin(object):
                             if self.list_filter_widget.has_key(k):
                                 use_widget, widget, field_class = self.check_for_widget(self.list_filter_widget, k)
                                 if use_widget:
-                                    field.__class__ = field_class
+                                    #field.__class__ = field_class # FIXME : do we need to set __class__ ?
                                     field.widget = widget
                                     field.choices = model_field.choices
                                     field.choices.insert(0, ('', '---------'))
