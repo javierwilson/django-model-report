@@ -602,8 +602,8 @@ class ReportAdmin(object):
                                     #field.__class__ = field_class # FIXME : do we need to set __class__ ?
                                     field.widget = widget
                                     field.choices = model_field.choices
-                                    field.choices.insert(0, ('', '---------'))
-                                    field.initial = ''
+                                    #field.choices.insert(0, ('', '---------'))
+                                    #field.initial = ''
 
                         field.label = force_unicode(_(field.label))
 
