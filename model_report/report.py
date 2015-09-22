@@ -392,6 +392,8 @@ class ReportAdmin(object):
                     else:
                         pass
                 qs = qs.filter(Q(**{selected_field: field_value}))
+                if self.exclude:
+                    qs = qs.exclude(Q(**{self.exclude['field']: self.exclude['value']}))
         self.query_set = qs.distinct()
         return self.query_set
 
@@ -549,6 +551,7 @@ class ReportAdmin(object):
 
     def get_form_filter(self, request):
         #form_fields = fields_for_model(self.model, [f for f in self.get_query_field_names() if f in self.list_filter])
+        # filters don't need to be listed!
         form_fields = fields_for_model(self.model, [f for f in self.list_filter])
         if not form_fields:
             form_fields = {
