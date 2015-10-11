@@ -108,7 +108,7 @@ class BrowserDownloadReport(ReportAdmin):
         'username',
         'download_price',
     ]
-    list_filter = ('browser__name', 'os__name', 'download_date', 'os__company__name',)
+    list_filter = ('browser', 'os', 'download_date', 'os__company',)
     list_order_by = ('download_date',)
     list_group_by = ('browser__name', 'os__name', 'os__company__name',)
     list_serie_fields = ('browser__name', 'os__name', 'download_price')
@@ -181,7 +181,7 @@ class BrowserListReport(ReportAdmin):
         'is_active',
     ]
     list_group_by = ('run_on__name', 'supports__name',)
-    list_filter = ('run_on__name', 'supports__name',)
+    list_filter = ('run_on', 'supports',)
     list_order_by = ('name',)
     type = 'chart'
     chart_types = ('pie', 'column')
