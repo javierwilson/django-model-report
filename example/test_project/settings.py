@@ -11,9 +11,9 @@ sys.path.append(join(PROJECT_ABSOLUTE_DIR, '../', '../'))
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
-ADMINS = (
-    ('juanpex', 'jpma55@gmail.com'),
-)
+#ADMINS = (
+#    ('juanpex', 'jpma55@gmail.com'),
+#)
 
 MANAGERS = ADMINS
 
