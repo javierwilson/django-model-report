@@ -542,7 +542,7 @@ class ReportAdmin(object):
         return form
 
     def get_report_fields(self):
-        return = [(mfield, field, caption) for (mfield, field), caption in zip(self.model_fields, self.get_column_names()) if field in self.fields]
+        return [(mfield, field, caption) for (mfield, field), caption in zip(self.model_fields, self.get_column_names()) if field in self.fields]
 
     def get_groupby_fields(self):
         return [(mfield, field, caption) for (mfield, field), caption in zip(self.model_fields, self.get_column_names()) if field in self.list_group_by]
