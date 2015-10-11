@@ -1,6 +1,7 @@
 {% if form_groupby or form_filter or form_config %}
 <div class="form_filter">
     <form method="GET" action="{{ request.path }}">
+    {% include "model_report/includes/form_report_fields.html" %}
     {% include "model_report/includes/form_groupby.html" %}
     {% include "model_report/includes/form_filter.html" %}
     {% include "model_report/includes/form_config.html" %}

@@ -131,3 +131,28 @@ class FilterForm(forms.BaseForm):
 
         for field in self.fields:
             self.fields[field].required = False
+
+
+class ReportFieldsForm(forms.Form):
+
+    report_fields = forms.MultipleChoiceField(label=_('Fields:'), required=False)
+
+    def _post_clean(self):
+        pass
+
+    def __init__(self, **kwargs):
+        super(ReportFieldsForm, self).__init__(**kwargs)
+        choices = []
+        for i, (mfield, field, caption) in enumerate(self.report_fields):
+            choices.append((field, caption))
+        self.fields['report_fields'].choices = choices
+        print choices
+        data = kwargs.get('data', {})
+        if data:
+            self.fields['report_fields'].initial = data.get('report_fields', '')
+
+    def get_cleaned_data(self):
+        cleaned_data = getattr(self, 'cleaned_data', {})
+        if 'report_fields' in cleaned_data:
+            if unicode(cleaned_data['fields']) == u'None':
+                cleaned_data['fields'] = None

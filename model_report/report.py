@@ -24,7 +24,7 @@ from django.forms.widgets import SelectMultiple
 
 from model_report.exporters.excel import ExcelExporter
 from model_report.exporters.pdf import PdfExporter
-from model_report.forms import ConfigForm, GroupByForm, FilterForm
+from model_report.forms import ConfigForm, GroupByForm, FilterForm, ReportFieldsForm
 from model_report.utils import base_label, ReportValue, ReportRow
 from model_report.highcharts import HighchartRender
 from model_report.widgets import RangeField
@@ -128,6 +128,9 @@ class ReportAdmin(object):
 
     fields = []
     """List of fields or lookup fields for query results to be listed."""
+
+    selectable_fields = False
+    """Allow user to select which fields to include."""
 
     model = None
     """Primary django model to query."""
@@ -420,6 +423,10 @@ class ReportAdmin(object):
                 filter_related_fields[cfield] = by_row[index].value
 
         try:
+            if self.selectable_fields:
+                form_report_fields = self.get_form_report_fields(context_request)
+            else:
+                form_report_fields = None
             form_groupby = self.get_form_groupby(context_request)
             form_filter = self.get_form_filter(context_request)
             form_config = self.get_form_config(context_request)
@@ -471,6 +478,7 @@ class ReportAdmin(object):
                 'inline_column_span': 0 if is_inline else len(self.parent_report.get_column_names()),
                 'report': self,
                 'form_groupby': form_groupby,
+                'form_report_fields': form_report_fields,
                 'form_filter': form_filter,
                 'form_config': form_config if self.type == 'chart' else None,
                 'chart': chart,
@@ -522,11 +530,25 @@ class ReportAdmin(object):
         form.is_valid()
         return form
 
+    def get_report_fields(self):
+        return [(mfield, field, caption) for (mfield, field), caption in zip(self.model_fields, self.get_column_names()) if field in self.fields]
+
     def get_groupby_fields(self):
         return [(mfield, field, caption) for (mfield, field), caption in zip(self.model_fields, self.get_column_names()) if field in self.list_group_by]
 
     def get_serie_fields(self):
         return [(index, mfield, field, caption) for index, ((mfield, field), caption) in enumerate(zip(self.model_fields, self.get_column_names())) if field in self.list_serie_fields]
+
+    def get_form_report_fields(self, request):
+        report_fields = self.get_report_fields()
+
+        if not report_fields:
+            return None
+
+        ReportFieldsForm.report_fields = report_fields
+        form = ReportFieldsForm(data=request.GET or None)
+        form.is_valid()
+        return form
 
     def get_form_groupby(self, request):
         groupby_fields = self.get_groupby_fields()

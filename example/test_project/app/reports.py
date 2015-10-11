@@ -63,6 +63,7 @@ class PopulationReport(ReportAdmin):
         'women',
         'self.total',
     ]
+    selectable_fields = True
     list_filter = ('age',)
     list_order_by = ('age',)
     list_group_by = ('age',)
