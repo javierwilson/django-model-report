@@ -35,7 +35,7 @@ class OSReport(ReportAdmin):
         'company__name',
         'name',
     ]
-    list_filter = ('company__name',)
+    list_filter = ('company',)
     type = 'report'
 
 
