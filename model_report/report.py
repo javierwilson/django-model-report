@@ -256,7 +256,7 @@ class ReportAdmin(object):
                         get_attr.verbose_name = field
                         model_field = field
             except IndexError:
-                raise ValueError('The field "%s" does not exist in model "%s".' % (field, self.model._meta.module_name))
+                raise ValueError('The field "%s" does not exist in model "%s".' % (field, self.model._meta.model_name))
             model_fields.append([model_field, field])
             if m2mfields:
                 model_m2m_fields.append([model_field, field, len(model_fields) - 1, m2mfields])
@@ -265,7 +265,7 @@ class ReportAdmin(object):
         if parent_report:
             self.related_inline_field = [f for f, x in self.model._meta.get_fields_with_model() if f.rel and hasattr(f.rel, 'to') and f.rel.to is self.parent_report.model][0]
             self.related_inline_accessor = self.related_inline_field.related.get_accessor_name()
-            self.related_fields = ["%s__%s" % (pfield.model._meta.module_name, attname) for pfield, attname in self.parent_report.model_fields if not isinstance(pfield, (str, unicode)) and  pfield.model == self.related_inline_field.rel.to]
+            self.related_fields = ["%s__%s" % (pfield.model._meta.model_name, attname) for pfield, attname in self.parent_report.model_fields if not isinstance(pfield, (str, unicode)) and  pfield.model == self.related_inline_field.rel.to]
             self.related_inline_filters = []
 
             for pfield, pattname in self.parent_report.model_fields:
