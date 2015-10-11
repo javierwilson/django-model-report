@@ -345,6 +345,7 @@ class ReportAdmin(object):
         return [dictrow[field_name] for field_name in self.get_fields()]
 
     def get_fields(self):
+        # FIXME: also removes fields from selectable menu
         if self.selectable_fields and hasattr(self.request, 'GET') and self.request.GET.getlist('report_fields'):
             self.fields = self.request.GET.getlist('report_fields')
         return [x for x in self.fields if not x in self.related_fields]
@@ -356,6 +357,8 @@ class ReportAdmin(object):
         values = []
         for field, field_name in self.model_fields:
             if field_name in ignore_columns:
+                continue
+            if field_name not in self.fields:
                 continue
             caption = self.override_field_labels.get(field_name, base_label)
             if hasattr(caption, '__call__'):  # Is callable
@@ -441,7 +444,7 @@ class ReportAdmin(object):
 
             if context_request.GET:
                 report_fields_data = form_report_fields.get_cleaned_data() if form_report_fields else None
-                if self.selectable_fields and report_fields_data:
+                if self.selectable_fields and report_fields_data and report_fields_data['report_fields']:
                     self.fields = report_fields_data['report_fields']
                     column_labels = self.get_column_names(filter_related_fields)
 
@@ -539,7 +542,7 @@ class ReportAdmin(object):
         return form
 
     def get_report_fields(self):
-        return [(mfield, field, caption) for (mfield, field), caption in zip(self.model_fields, self.get_column_names()) if field in self.all_fields]
+        return = [(mfield, field, caption) for (mfield, field), caption in zip(self.model_fields, self.get_column_names()) if field in self.fields]
 
     def get_groupby_fields(self):
         return [(mfield, field, caption) for (mfield, field), caption in zip(self.model_fields, self.get_column_names()) if field in self.list_group_by]
@@ -584,7 +587,7 @@ class ReportAdmin(object):
 
     def get_form_filter(self, request):
         #form_fields = fields_for_model(self.model, [f for f in self.get_query_field_names() if f in self.list_filter])
-        # filters don't need to be listed!
+        # filters don't need to be fields to be reported (you can filter by date but do not print/show the date field)!
         form_fields = fields_for_model(self.model, [f for f in self.list_filter])
         if not form_fields:
             form_fields = {
