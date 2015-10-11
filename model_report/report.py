@@ -226,6 +226,7 @@ class ReportAdmin(object):
     def __init__(self, parent_report=None, request=None):
         self.parent_report = parent_report
         self.request = request
+        self.all_fields = self.fields
         model_fields = []
         model_m2m_fields = []
         self.related_inline_field = None
@@ -344,6 +345,8 @@ class ReportAdmin(object):
         return [dictrow[field_name] for field_name in self.get_fields()]
 
     def get_fields(self):
+        if self.selectable_fields and hasattr(self.request, 'GET') and self.request.GET.getlist('report_fields'):
+            self.fields = self.request.GET.getlist('report_fields')
         return [x for x in self.fields if not x in self.related_fields]
 
     def get_column_names(self, ignore_columns={}):
@@ -437,6 +440,11 @@ class ReportAdmin(object):
             chart = None
 
             if context_request.GET:
+                report_fields_data = form_report_fields.get_cleaned_data() if form_report_fields else None
+                if self.selectable_fields and report_fields_data:
+                    self.fields = report_fields_data['report_fields']
+                    column_labels = self.get_column_names(filter_related_fields)
+
                 groupby_data = form_groupby.get_cleaned_data() if form_groupby else None
                 filter_kwargs = filter_related_fields or form_filter.get_filter_kwargs()
                 if groupby_data:
@@ -531,7 +539,7 @@ class ReportAdmin(object):
         return form
 
     def get_report_fields(self):
-        return [(mfield, field, caption) for (mfield, field), caption in zip(self.model_fields, self.get_column_names()) if field in self.fields]
+        return [(mfield, field, caption) for (mfield, field), caption in zip(self.model_fields, self.get_column_names()) if field in self.all_fields]
 
     def get_groupby_fields(self):
         return [(mfield, field, caption) for (mfield, field), caption in zip(self.model_fields, self.get_column_names()) if field in self.list_group_by]

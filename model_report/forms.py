@@ -146,7 +146,6 @@ class ReportFieldsForm(forms.Form):
         for i, (mfield, field, caption) in enumerate(self.report_fields):
             choices.append((field, caption))
         self.fields['report_fields'].choices = choices
-        print choices
         data = kwargs.get('data', {})
         if data:
             self.fields['report_fields'].initial = data.get('report_fields', '')
@@ -154,5 +153,6 @@ class ReportFieldsForm(forms.Form):
     def get_cleaned_data(self):
         cleaned_data = getattr(self, 'cleaned_data', {})
         if 'report_fields' in cleaned_data:
-            if unicode(cleaned_data['fields']) == u'None':
-                cleaned_data['fields'] = None
+            if unicode(cleaned_data['report_fields']) == u'None':
+                cleaned_data['report_fields'] = None
+        return cleaned_data
