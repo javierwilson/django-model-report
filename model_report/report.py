@@ -215,10 +215,12 @@ class ReportAdmin(object):
     """ Dictionary of fields that are aggregated to the query.
     Format {field_name: Field instance}"""
 
+    exclude = None
+    """Query condition to exclude."""
+
     always_show_full_username = False
 
     def __init__(self, parent_report=None, request=None):
-        self.exclude = None
         self.parent_report = parent_report
         self.request = request
         model_fields = []
@@ -371,6 +373,8 @@ class ReportAdmin(object):
         Return the the queryset
         """
         qs = self.model.objects.all()
+        if self.exclude:
+            qs = qs.exclude(Q(**{self.exclude['field']: self.exclude['value']}))
         for selected_field, field_value in filter_kwargs.items():
             if not field_value is None and field_value != '':
                 if hasattr(field_value, 'values_list'):
@@ -393,8 +397,6 @@ class ReportAdmin(object):
                     else:
                         pass
                 qs = qs.filter(Q(**{selected_field: field_value}))
-                if self.exclude:
-                    qs = qs.exclude(Q(**{self.exclude['field']: self.exclude['value']}))
         self.query_set = qs.distinct()
         return self.query_set
 

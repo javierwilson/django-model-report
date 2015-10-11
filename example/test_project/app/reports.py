@@ -36,6 +36,7 @@ class OSReport(ReportAdmin):
         'name',
     ]
     list_filter = ('company',)
+    exclude = {'field': 'name', 'value': 'WinXP'}
     type = 'report'
 
 
