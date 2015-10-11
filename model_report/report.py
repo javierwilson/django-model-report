@@ -218,6 +218,7 @@ class ReportAdmin(object):
     always_show_full_username = False
 
     def __init__(self, parent_report=None, request=None):
+        self.exclude = None
         self.parent_report = parent_report
         self.request = request
         model_fields = []
