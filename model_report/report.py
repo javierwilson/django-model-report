@@ -227,6 +227,10 @@ class ReportAdmin(object):
         self.parent_report = parent_report
         self.request = request
         self.all_fields = self.fields
+        if self.selectable_fields and hasattr(self.request, 'GET') and self.request.GET.getlist('report_fields'):
+            self.chosen_fields = self.request.GET.getlist('report_fields')
+        else:
+            self.chosen_fields = None
         model_fields = []
         model_m2m_fields = []
         self.related_inline_field = None
@@ -269,6 +273,7 @@ class ReportAdmin(object):
                 model_m2m_fields.append([model_field, field, len(model_fields) - 1, m2mfields])
         self.model_fields = model_fields
         self.model_m2m_fields = model_m2m_fields
+
         if parent_report:
             self.related_inline_field = [f for f, x in self.model._meta.get_fields_with_model() if f.rel and hasattr(f.rel, 'to') and f.rel.to is self.parent_report.model][0]
             self.related_inline_accessor = self.related_inline_field.related.get_accessor_name()
@@ -346,8 +351,8 @@ class ReportAdmin(object):
 
     def get_fields(self):
         # FIXME: also removes fields from selectable menu
-        if self.selectable_fields and hasattr(self.request, 'GET') and self.request.GET.getlist('report_fields'):
-            self.fields = self.request.GET.getlist('report_fields')
+        #if self.selectable_fields and hasattr(self.request, 'GET') and self.request.GET.getlist('report_fields'):
+        #    self.fields = self.request.GET.getlist('report_fields')
         return [x for x in self.fields if not x in self.related_fields]
 
     def get_column_names(self, ignore_columns={}):
@@ -357,8 +362,6 @@ class ReportAdmin(object):
         values = []
         for field, field_name in self.model_fields:
             if field_name in ignore_columns:
-                continue
-            if field_name not in self.fields:
                 continue
             caption = self.override_field_labels.get(field_name, base_label)
             if hasattr(caption, '__call__'):  # Is callable
@@ -444,8 +447,15 @@ class ReportAdmin(object):
 
             if context_request.GET:
                 report_fields_data = form_report_fields.get_cleaned_data() if form_report_fields else None
-                if self.selectable_fields and report_fields_data and report_fields_data['report_fields']:
-                    self.fields = report_fields_data['report_fields']
+                if self.chosen_fields:
+                    self.fields = self.chosen_fields
+                    new_model_fields = []
+                    for field, value in self.model_fields:
+                        #if field.value not in self.chosen_fields:
+                        #    self.model_fields.remove()
+                        if value in self.chosen_fields:
+                            new_model_fields.append((field, value))
+                    self.model_fields = new_model_fields
                     column_labels = self.get_column_names(filter_related_fields)
 
                 groupby_data = form_groupby.get_cleaned_data() if form_groupby else None
