@@ -52,11 +52,15 @@
     padding-bottom: 0;
   }
     </style>
-        <!-- Latest compiled and minified CSS -->
+
+    <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css">
 
     <!-- Optional theme -->
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-theme.min.css">
+
+    {% block head_extra %}
+    {% endblock %}
 
     <!-- Latest compiled and minified JavaScript -->
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
@@ -64,8 +68,6 @@
     <!--[if lt IE 9]>
       <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
-    {% block head_extra %}
-    {% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
     <div class="navbar navbar-fixed-top">

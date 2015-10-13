@@ -128,6 +128,8 @@ INSTALLED_APPS = (
     # 'django.contrib.admindocs',
     'model_report',
     'app',
+    # debug...
+    'django_extensions',
 )
 
 # A sample logging configuration. The only tangible logging

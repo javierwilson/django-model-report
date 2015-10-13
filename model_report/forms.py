@@ -1,6 +1,8 @@
 # coding=utf-8
 from django import forms
 from django.utils.translation import ugettext_lazy as _
+from django.contrib.admin.widgets import FilteredSelectMultiple
+
 from model_report.widgets import RangeField
 
 
@@ -135,7 +137,7 @@ class FilterForm(forms.BaseForm):
 
 class ReportFieldsForm(forms.Form):
 
-    report_fields = forms.MultipleChoiceField(label=_('Fields:'), required=False)
+    report_fields = forms.MultipleChoiceField(label=_('Fields:'), widget=FilteredSelectMultiple("Fields", is_stacked=False), required=False)
 
     def _post_clean(self):
         pass

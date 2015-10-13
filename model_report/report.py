@@ -449,13 +449,15 @@ class ReportAdmin(object):
                 report_fields_data = form_report_fields.get_cleaned_data() if form_report_fields else None
                 if self.chosen_fields:
                     self.fields = self.chosen_fields
+
+                    #FIXME: it just seems silly
                     new_model_fields = []
-                    for field, value in self.model_fields:
-                        #if field.value not in self.chosen_fields:
-                        #    self.model_fields.remove()
-                        if value in self.chosen_fields:
-                            new_model_fields.append((field, value))
+                    for chosen_field in self.chosen_fields:
+                        for field, value in self.model_fields:
+                            if value == chosen_field:
+                                new_model_fields.append((field, value))
                     self.model_fields = new_model_fields
+
                     column_labels = self.get_column_names(filter_related_fields)
 
                 groupby_data = form_groupby.get_cleaned_data() if form_groupby else None
