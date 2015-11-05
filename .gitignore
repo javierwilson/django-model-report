@@ -13,3 +13,4 @@ dist/
 .pydevproject
 .settings/*
 resetdb.sh
+*.swp
