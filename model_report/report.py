@@ -601,6 +601,8 @@ class ReportAdmin(object):
         #form_fields = fields_for_model(self.model, [f for f in self.get_query_field_names() if f in self.list_filter])
         # filters don't need to be fields to be reported (you can filter by date but do not print/show the date field)!
         form_fields = fields_for_model(self.model, [f for f in self.list_filter])
+        if 'id' in self.list_filter: # id is excluded by fields_for_model, i think
+            form_fields['id'] = None
         if not form_fields:
             form_fields = {
                 '__all__': forms.BooleanField(label='', widget=forms.HiddenInput, initial='1')
