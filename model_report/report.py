@@ -7,7 +7,7 @@ from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.utils.translation import ugettext_lazy as _
-from django.db.models.fields import DateTimeField, DateField
+from django.db.models.fields import DateTimeField, DateField, AutoField
 from django.utils.encoding import force_unicode
 from django.db.models import Q
 from django import forms
@@ -628,6 +628,9 @@ class ReportAdmin(object):
                     if isinstance(model_field, (DateField, DateTimeField)):
                         form_fields.pop(k)
                         field = RangeField(model_field.formfield)
+                    elif isinstance(model_field, AutoField):
+                        field = forms.CharField()
+                        field.label = self.override_field_labels.get(k, base_label)
                     else:
                         if not hasattr(model_field, 'formfield'):
                             field = forms.ModelChoiceField(queryset=model_field.model.objects.all())
