@@ -489,9 +489,11 @@ class ReportAdmin(object):
                     exporter_class = self.exporters.get(context_request.GET.get('export'), None)
                     if exporter_class:
                         report_inlines = [ir(self, context_request) for ir in self.inlines]
-                        return exporter_class.render(self, column_labels, report_rows, report_inlines)
+                        exporter_object = exporter_class()
+                        return exporter_object.render(self, column_labels, report_rows, report_inlines)
 
             inlines = [ir(self, context_request) for ir in self.inlines]
+
 
             is_inline = self.parent_report is None
             render_report = not (len(report_rows) == 0 and is_inline)
