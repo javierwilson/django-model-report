@@ -51,8 +51,10 @@ class ExcelExporter(Exporter):
         self.row_index += 1
         for g, rows in report_rows:
             if g:
-                self.sheet1.write(self.row_index, 0, u'%s' % x, self.stylebold)
+                self.sheet1.write(self.row_index, 0, u'%s' % g, self.stylebold)
                 self.row_index += 1
+                sheet1.write(row_index, 0, u'%s' % g, stylebold)
+                row_index += 1
             for row in list(rows):
                 if row.is_value():
                     for index, x in enumerate(row):
