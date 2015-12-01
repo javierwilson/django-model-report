@@ -16,6 +16,7 @@ try:
     from django.db.models.fields.related import ForeignObjectRel
 except ImportError:  # Django < 1.8
     from django.db.models.related import RelatedObject as ForeignObjectRel
+from django.db.models.fields.related import ManyToOneRel
 from django.db.models import ForeignKey
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -134,6 +135,9 @@ class ReportAdmin(object):
 
     model = None
     """Primary django model to query."""
+
+    list_inline_filter = []
+    """List of fields or lookup fields to filter inline data."""
 
     list_filter = ()
     """List of fields or lookup fields to filter data."""
@@ -274,7 +278,7 @@ class ReportAdmin(object):
         self.model_fields = model_fields
         self.model_m2m_fields = model_m2m_fields
 
-        if parent_report:
+        if parent_report: # meaning: this is parent report
             self.related_inline_field = [f for f, x in self.model._meta.get_fields_with_model() if f.rel and hasattr(f.rel, 'to') and f.rel.to is self.parent_report.model][0]
             self.related_inline_accessor = self.related_inline_field.related.get_accessor_name()
             self.related_fields = ["%s__%s" % (pfield.model._meta.model_name, attname) for pfield, attname in self.parent_report.model_fields if not isinstance(pfield, (str, unicode)) and  pfield.model == self.related_inline_field.rel.to]
@@ -409,6 +413,7 @@ class ReportAdmin(object):
                     else:
                         pass
                 qs = qs.filter(Q(**{selected_field: field_value}))
+                print "selected_field %s field_value %s" % (selected_field, field_value)
         self.query_set = qs.distinct()
         return self.query_set
 
@@ -428,8 +433,23 @@ class ReportAdmin(object):
         context_request = request or self.request
         filter_related_fields = {}
         if self.parent_report and by_row:
+
+            # get inline filters from parent report:
+            if self.parent_report.list_inline_filter:
+                print "*** %s" % (self.parent_report.filter_kwargs)
+                for inline_filter in self.parent_report.list_inline_filter:
+                    classname = self.model.__name__.lower()
+                    basename = "%s__%s" % (classname, inline_filter.name)
+                    for kwarg, val in self.parent_report.filter_kwargs.iteritems():
+                        if basename in kwarg:
+                            kwarg = kwarg.replace(classname + '__', '')
+                            filter_related_fields[kwarg] = val
+
+
+            # if this is and inline, activate preset filter
             for mfield, cfield, index in self.related_inline_filters:
                 filter_related_fields[cfield] = by_row[index].value
+            print "filter_related_fields %s" % (filter_related_fields,)
 
         try:
             if self.selectable_fields:
@@ -462,6 +482,9 @@ class ReportAdmin(object):
 
                 groupby_data = form_groupby.get_cleaned_data() if form_groupby else None
                 filter_kwargs = filter_related_fields or form_filter.get_filter_kwargs()
+                self.filter_kwargs = filter_kwargs # save for inlines
+
+                print "filter_related_fields %s or form_filter.get_filter_kwargs() %s" % (filter_related_fields, form_filter.get_filter_kwargs())
                 if groupby_data:
                     self.__dict__.update(groupby_data)
                 else:
@@ -618,7 +641,10 @@ class ReportAdmin(object):
                     if '__' in k:
                         for field_lookup in k.split("__"):
                             if pre_field:
-                                if isinstance(pre_field, ForeignObjectRel):
+                                if isinstance(pre_field, ManyToOneRel):
+                                    base_model = pre_field.related_model
+                                    self.list_inline_filter.append(base_model._meta.get_field_by_name(field_lookup)[0])
+                                elif isinstance(pre_field, ForeignObjectRel):
                                     base_model = pre_field.model
                                 else:
                                     base_model = pre_field.rel.to

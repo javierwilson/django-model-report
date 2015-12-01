@@ -143,6 +143,7 @@ class BrowserReport(ReportAdmin):
     fields = [
         'name',
     ]
+    list_filter = ('browserdownload__download_date',)
     inlines = [BrowserDownloadReport]
     list_order_by = ('name',)
     type = 'report'
