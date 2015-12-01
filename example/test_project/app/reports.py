@@ -204,10 +204,10 @@ class BrowserListReport(ReportAdmin):
         'supports__name': sum_column
     }
     override_field_filter_values = {
-        'supports__name': filter_supports__name
+        'supports': filter_supports__name
     }
     override_field_choices = {
-        'supports__name': filter_supports__name
+        'supports': filter_supports__name
     }
 
 
