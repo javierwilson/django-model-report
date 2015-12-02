@@ -413,7 +413,6 @@ class ReportAdmin(object):
                     else:
                         pass
                 qs = qs.filter(Q(**{selected_field: field_value}))
-                print "selected_field %s field_value %s" % (selected_field, field_value)
         self.query_set = qs.distinct()
         return self.query_set
 
@@ -436,20 +435,19 @@ class ReportAdmin(object):
 
             # get inline filters from parent report:
             if self.parent_report.list_inline_filter:
-                print "*** %s" % (self.parent_report.filter_kwargs)
                 for inline_filter in self.parent_report.list_inline_filter:
-                    classname = self.model.__name__.lower()
-                    basename = "%s__%s" % (classname, inline_filter.name)
+                    #classname = self.model.__name__.lower()
+                    related_name = getattr(inline_filter.model, self.parent_report.model.__name__.lower()).field.related_query_name()
+                    basename = "%s__%s" % (related_name, inline_filter.name)
                     for kwarg, val in self.parent_report.filter_kwargs.iteritems():
                         if basename in kwarg:
-                            kwarg = kwarg.replace(classname + '__', '')
+                            kwarg = kwarg.replace(related_name + '__', '')
                             filter_related_fields[kwarg] = val
 
 
             # if this is and inline, activate preset filter
             for mfield, cfield, index in self.related_inline_filters:
                 filter_related_fields[cfield] = by_row[index].value
-            print "filter_related_fields %s" % (filter_related_fields,)
 
         try:
             if self.selectable_fields:
@@ -484,7 +482,6 @@ class ReportAdmin(object):
                 filter_kwargs = filter_related_fields or form_filter.get_filter_kwargs()
                 self.filter_kwargs = filter_kwargs # save for inlines
 
-                print "filter_related_fields %s or form_filter.get_filter_kwargs() %s" % (filter_related_fields, form_filter.get_filter_kwargs())
                 if groupby_data:
                     self.__dict__.update(groupby_data)
                 else:
