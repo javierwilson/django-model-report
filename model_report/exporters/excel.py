@@ -47,7 +47,7 @@ class ExcelExporter(Exporter):
 
     def write_rows(self, column_labels, report_rows, report_inlines=None):
 
-        if report_rows[0][0]:
+        if not report_rows or report_rows[0][0]:
             # FIXME: [0][0] is None when real data. Is this reliable?
             return
 
