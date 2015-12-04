@@ -46,6 +46,11 @@ class FitSheetWrapper(object):
 class ExcelExporter(Exporter):
 
     def write_rows(self, column_labels, report_rows, report_inlines=None):
+
+        if report_rows[0][0]:
+            # FIXME: [0][0] is None when real data. Is this reliable?
+            return
+
         for index, x in enumerate(column_labels):
             self.sheet1.write(self.row_index, index, u'%s' % x, self.stylebold)
         self.row_index += 1
