@@ -83,6 +83,7 @@ class Support(models.Model):
 
 class Browser(models.Model):
     name = models.CharField(_('Name'), max_length=25)
+    factsheet = models.FileField(null=True)
     is_active = models.BooleanField(_('Is Active?'), default=True)
     run_on = models.ManyToManyField(OS, verbose_name=_('Run On'), related_name='browsers', blank=True)
     supports = models.ManyToManyField(Support, verbose_name=_('Supports'), related_name='browsers', blank=True)

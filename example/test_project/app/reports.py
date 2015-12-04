@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from django.utils.translation import ugettext_lazy as _
-from app.models import OS, Population, Browser, BrowserDownload, ResolutionByYear
+from django.conf import settings
 
 from model_report.report import reports, ReportAdmin
 from model_report.utils import (usd_format, avg_column, sum_column, count_column)
 
+from app.models import OS, Population, Browser, BrowserDownload, ResolutionByYear
 
 class ResolutionByYearReport(ReportAdmin):
     model = ResolutionByYear
@@ -152,6 +153,12 @@ class BrowserReport(ReportAdmin):
 reports.register('browser-report', BrowserReport)
 
 
+def link_to_media(rvalue, instance):
+    if instance.is_value:
+        return '<a href="%s%s">%s</a>' % (settings.MEDIA_URL, rvalue, rvalue)
+    return rvalue.value[0]
+
+
 def list_to_ul_format(rvalue, instance):
     if instance.is_value:
         return '<ul>%s</ul>' % ''.join(['<li>%s</li>' % v for v in rvalue])
@@ -182,6 +189,7 @@ class BrowserListReport(ReportAdmin):
         'run_on__name',
         'supports__name',
         'is_active',
+        'factsheet',
     ]
     list_group_by = ('run_on__name', 'supports__name',)
     list_filter = ('run_on', 'supports',)
@@ -192,6 +200,7 @@ class BrowserListReport(ReportAdmin):
     override_field_formats = {
         'run_on__name': list_to_ul_format,
         'supports__name': list_to_ul_format,
+        'factsheet': link_to_media,
     }
     override_field_labels = {
         'run_on__name': run_on__name_label,
