@@ -1,6 +1,6 @@
 django==1.9.6
 reportlab
-html5lib
+html5lib==1.0b8
 BeautifulSoup4
 psycopg2==2.4.5
 dj-database-url==0.2.0
