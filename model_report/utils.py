@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 from decimal import Decimal
 from string import capwords
 from django.utils.translation import ugettext_lazy as _
@@ -18,7 +19,19 @@ base_lookup_label = lambda report, field: "[%s] %s" % (field.model._meta.verbose
 model_lookup_label = lambda report, field: "[%s] %s" % (report.model._meta.verbose_name.title(), field.verbose_name.title())
 
 
-def sum_column(values):
+def sum_timedelta_column(values, initial=0):
+    """
+    Sum timedelta values for any column
+    """
+    if not values:
+        return datetime.timedelta(0)
+    #if isinstance(values[0], (list, tuple)):
+    #    return Decimal(sum([v if str.isdigit(str(v[0] if isinstance(v, (list, tuple)) else v)) else 1 for v in values]))
+    return sum(values, datetime.timedelta())
+sum_timedelta_column.caption = _('Total Time')
+
+
+def sum_column(values, initial=0):
     """
     Sum values for any column
     """
