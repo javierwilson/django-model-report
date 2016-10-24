@@ -38,7 +38,7 @@ except:
     OrderedDict = dict  # pyflakes:ignore
 
 
-def autodiscover(module_name='reports.py'):
+def autodiscover(module_name='reports'):
     """
     Auto-discover INSTALLED_APPS report.py modules and fail silently when
     not present. Borrowed form django.contrib.admin
