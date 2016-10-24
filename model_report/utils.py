@@ -40,6 +40,14 @@ def avg_column(values):
 avg_column.caption = _('Average')
 
 
+def distinct_count_column(values):
+    """
+    Count distinct values for any column
+    """
+    return Decimal(len(set(values)))
+distinct_count_column.caption = _('Distinct Count')
+
+
 def count_column(values):
     """
     Count values for any column
