@@ -392,3 +392,5 @@ msgstr "Comienzo"
 msgid "End date"
 msgstr "Fin"
 
+msgid "Fields"
+msgstr "Campos"

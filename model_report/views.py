@@ -2,6 +2,7 @@
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.http import Http404
+from django.contrib.auth.decorators import login_required
 
 from model_report.report import reports
 
@@ -17,6 +18,7 @@ def report_list(request):
                               context_instance=RequestContext(request))
 
 
+@login_required
 def report(request, slug):
     """
     This view render one report

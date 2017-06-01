@@ -1,0 +1,9 @@
+{% load i18n %}
+{% if form_report_fields %}
+    {% with form_report_fields as form %}
+        <fieldset>
+            <legend>{% trans "Fields" %}</legend>
+            {% include "model_report/includes/form_fields.html" %}
+        </fieldset>
+    {% endwith %}
+{% endif %}

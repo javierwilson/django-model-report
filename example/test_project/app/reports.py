@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from django.utils.translation import ugettext_lazy as _
-from app.models import OS, Population, Browser, BrowserDownload, ResolutionByYear
+from django.conf import settings
 
 from model_report.report import reports, ReportAdmin
 from model_report.utils import (usd_format, avg_column, sum_column, count_column)
 
+from app.models import OS, Population, Browser, BrowserDownload, ResolutionByYear
 
 class ResolutionByYearReport(ReportAdmin):
     model = ResolutionByYear
@@ -35,7 +36,8 @@ class OSReport(ReportAdmin):
         'company__name',
         'name',
     ]
-    list_filter = ('company__name',)
+    list_filter = ('company',)
+    exclude = {'field': 'name', 'value': 'WinXP'}
     type = 'report'
 
 
@@ -62,6 +64,7 @@ class PopulationReport(ReportAdmin):
         'women',
         'self.total',
     ]
+    selectable_fields = True
     list_filter = ('age',)
     list_order_by = ('age',)
     list_group_by = ('age',)
@@ -108,7 +111,7 @@ class BrowserDownloadReport(ReportAdmin):
         'username',
         'download_price',
     ]
-    list_filter = ('browser__name', 'os__name', 'download_date', 'os__company__name',)
+    list_filter = ('browser', 'os', 'download_date', 'os__company',)
     list_order_by = ('download_date',)
     list_group_by = ('browser__name', 'os__name', 'os__company__name',)
     list_serie_fields = ('browser__name', 'os__name', 'download_price')
@@ -141,12 +144,19 @@ class BrowserReport(ReportAdmin):
     fields = [
         'name',
     ]
+    list_filter = ('browserdownload__download_date',)
     inlines = [BrowserDownloadReport]
     list_order_by = ('name',)
     type = 'report'
 
 
 reports.register('browser-report', BrowserReport)
+
+
+def link_to_media(rvalue, instance):
+    if instance.is_value:
+        return '<a href="%s%s">%s</a>' % (settings.MEDIA_URL, rvalue, rvalue)
+    return rvalue.value[0]
 
 
 def list_to_ul_format(rvalue, instance):
@@ -179,9 +189,10 @@ class BrowserListReport(ReportAdmin):
         'run_on__name',
         'supports__name',
         'is_active',
+        'factsheet',
     ]
     list_group_by = ('run_on__name', 'supports__name',)
-    list_filter = ('run_on__name', 'supports__name',)
+    list_filter = ('run_on', 'supports',)
     list_order_by = ('name',)
     type = 'chart'
     chart_types = ('pie', 'column')
@@ -189,6 +200,7 @@ class BrowserListReport(ReportAdmin):
     override_field_formats = {
         'run_on__name': list_to_ul_format,
         'supports__name': list_to_ul_format,
+        'factsheet': link_to_media,
     }
     override_field_labels = {
         'run_on__name': run_on__name_label,
@@ -202,10 +214,10 @@ class BrowserListReport(ReportAdmin):
         'supports__name': sum_column
     }
     override_field_filter_values = {
-        'supports__name': filter_supports__name
+        'supports': filter_supports__name
     }
     override_field_choices = {
-        'supports__name': filter_supports__name
+        'supports': filter_supports__name
     }
 
 

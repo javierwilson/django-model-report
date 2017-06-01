@@ -3,11 +3,12 @@ import copy
 from xlwt import Workbook, easyxf
 from itertools import groupby
 
+import django
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.utils.translation import ugettext_lazy as _
-from django.db.models.fields import DateTimeField, DateField
+from django.db.models.fields import DateTimeField, DateField, AutoField
 from django.utils.encoding import force_unicode
 from django.db.models import Q
 from django import forms
@@ -16,6 +17,7 @@ try:
     from django.db.models.fields.related import ForeignObjectRel
 except ImportError:  # Django < 1.8
     from django.db.models.related import RelatedObject as ForeignObjectRel
+from django.db.models.fields.related import ManyToOneRel
 from django.db.models import ForeignKey
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -24,7 +26,7 @@ from django.forms.widgets import SelectMultiple
 
 from model_report.exporters.excel import ExcelExporter
 from model_report.exporters.pdf import PdfExporter
-from model_report.forms import ConfigForm, GroupByForm, FilterForm
+from model_report.forms import ConfigForm, GroupByForm, FilterForm, ReportFieldsForm
 from model_report.utils import base_label, ReportValue, ReportRow
 from model_report.highcharts import HighchartRender
 from model_report.widgets import RangeField
@@ -36,13 +38,13 @@ except:
     OrderedDict = dict  # pyflakes:ignore
 
 
-def autodiscover():
+def autodiscover(module_name='reports'):
     """
     Auto-discover INSTALLED_APPS report.py modules and fail silently when
     not present. Borrowed form django.contrib.admin
     """
 
-    from django.utils.importlib import import_module
+    from importlib import import_module
     from django.utils.module_loading import module_has_submodule
 
     global reports
@@ -52,7 +54,7 @@ def autodiscover():
         # Attempt to import the app's admin module.
         try:
             before_import_registry = copy.copy(reports)
-            import_module('%s.reports' % app)
+            import_module('%s.%s' % (app, module_name))
         except:
             # Reset the model registry to the state before the last import as
             # this import will have to reoccur on the next request and this
@@ -63,7 +65,7 @@ def autodiscover():
             # Decide whether to bubble up this error. If the app just
             # doesn't have an admin module, we can ignore the error
             # attempting to import it, otherwise we want it to bubble up.
-            if module_has_submodule(mod, 'reports'):
+            if module_has_submodule(mod, module_name):
                 raise
 
 
@@ -121,6 +123,15 @@ def is_date_field(field):
     return isinstance(field, DateField) or isinstance(field, DateTimeField)
 
 
+def get_model_name(model):
+    """ Returns string name for the given model """
+    # model._meta.module_name is deprecated in django version 1.7 and removed in django version 1.8.
+    if django.VERSION < (1, 7):
+        return model._meta.module_name
+    else:
+        return model._meta.model_name
+
+
 class ReportAdmin(object):
     """
     Class to represent a Report.
@@ -129,8 +140,14 @@ class ReportAdmin(object):
     fields = []
     """List of fields or lookup fields for query results to be listed."""
 
+    selectable_fields = False
+    """Allow user to select which fields to include."""
+
     model = None
     """Primary django model to query."""
+
+    list_inline_filter = []
+    """List of fields or lookup fields to filter inline data."""
 
     list_filter = ()
     """List of fields or lookup fields to filter data."""
@@ -215,11 +232,19 @@ class ReportAdmin(object):
     """ Dictionary of fields that are aggregated to the query.
     Format {field_name: Field instance}"""
 
+    exclude = None
+    """Query condition to exclude."""
+
     always_show_full_username = False
 
     def __init__(self, parent_report=None, request=None):
         self.parent_report = parent_report
         self.request = request
+        self.all_fields = self.fields
+        if self.selectable_fields and hasattr(self.request, 'GET') and self.request.GET.getlist('report_fields'):
+            self.chosen_fields = self.request.GET.getlist('report_fields')
+        else:
+            self.chosen_fields = None
         model_fields = []
         model_m2m_fields = []
         self.related_inline_field = None
@@ -256,16 +281,17 @@ class ReportAdmin(object):
                         get_attr.verbose_name = field
                         model_field = field
             except IndexError:
-                raise ValueError('The field "%s" does not exist in model "%s".' % (field, self.model._meta.module_name))
+                raise ValueError('The field "%s" does not exist in model "%s".' % (field, get_model_name(self.model)))
             model_fields.append([model_field, field])
             if m2mfields:
                 model_m2m_fields.append([model_field, field, len(model_fields) - 1, m2mfields])
         self.model_fields = model_fields
         self.model_m2m_fields = model_m2m_fields
-        if parent_report:
+
+        if parent_report: # meaning: this is parent report
             self.related_inline_field = [f for f, x in self.model._meta.get_fields_with_model() if f.rel and hasattr(f.rel, 'to') and f.rel.to is self.parent_report.model][0]
             self.related_inline_accessor = self.related_inline_field.related.get_accessor_name()
-            self.related_fields = ["%s__%s" % (pfield.model._meta.module_name, attname) for pfield, attname in self.parent_report.model_fields if not isinstance(pfield, (str, unicode)) and  pfield.model == self.related_inline_field.rel.to]
+            self.related_fields = ["%s__%s" % (get_model_name(pfield.model), attname) for pfield, attname in self.parent_report.model_fields if not isinstance(pfield, (str, unicode)) and  pfield.model == self.related_inline_field.rel.to]
             self.related_inline_filters = []
 
             for pfield, pattname in self.parent_report.model_fields:
@@ -338,6 +364,9 @@ class ReportAdmin(object):
         return [dictrow[field_name] for field_name in self.get_fields()]
 
     def get_fields(self):
+        # FIXME: also removes fields from selectable menu
+        #if self.selectable_fields and hasattr(self.request, 'GET') and self.request.GET.getlist('report_fields'):
+        #    self.fields = self.request.GET.getlist('report_fields')
         return [x for x in self.fields if not x in self.related_fields]
 
     def get_column_names(self, ignore_columns={}):
@@ -370,6 +399,8 @@ class ReportAdmin(object):
         Return the the queryset
         """
         qs = self.model.objects.all()
+        if self.exclude:
+            qs = qs.exclude(Q(**{self.exclude['field']: self.exclude['value']}))
         for selected_field, field_value in filter_kwargs.items():
             if not field_value is None and field_value != '':
                 if hasattr(field_value, 'values_list'):
@@ -414,10 +445,28 @@ class ReportAdmin(object):
         context_request = request or self.request
         filter_related_fields = {}
         if self.parent_report and by_row:
+
+            # get inline filters from parent report:
+            if self.parent_report.list_inline_filter:
+                for inline_filter in self.parent_report.list_inline_filter:
+                    #classname = self.model.__name__.lower()
+                    related_name = getattr(inline_filter.model, self.parent_report.model.__name__.lower()).field.related_query_name()
+                    basename = "%s__%s" % (related_name, inline_filter.name)
+                    for kwarg, val in self.parent_report.filter_kwargs.iteritems():
+                        if basename in kwarg:
+                            kwarg = kwarg.replace(related_name + '__', '')
+                            filter_related_fields[kwarg] = val
+
+
+            # if this is and inline, activate preset filter
             for mfield, cfield, index in self.related_inline_filters:
                 filter_related_fields[cfield] = by_row[index].value
 
         try:
+            if self.selectable_fields:
+                form_report_fields = self.get_form_report_fields(context_request)
+            else:
+                form_report_fields = None
             form_groupby = self.get_form_groupby(context_request)
             form_filter = self.get_form_filter(context_request)
             form_config = self.get_form_config(context_request)
@@ -428,8 +477,24 @@ class ReportAdmin(object):
             chart = None
 
             if context_request.GET:
+                report_fields_data = form_report_fields.get_cleaned_data() if form_report_fields else None
+                if self.chosen_fields:
+                    self.fields = self.chosen_fields
+
+                    #FIXME: it just seems silly
+                    new_model_fields = []
+                    for chosen_field in self.chosen_fields:
+                        for field, value in self.model_fields:
+                            if value == chosen_field:
+                                new_model_fields.append((field, value))
+                    self.model_fields = new_model_fields
+
+                    column_labels = self.get_column_names(filter_related_fields)
+
                 groupby_data = form_groupby.get_cleaned_data() if form_groupby else None
                 filter_kwargs = filter_related_fields or form_filter.get_filter_kwargs()
+                self.filter_kwargs = filter_kwargs # save for inlines
+
                 if groupby_data:
                     self.__dict__.update(groupby_data)
                 else:
@@ -457,9 +522,11 @@ class ReportAdmin(object):
                     exporter_class = self.exporters.get(context_request.GET.get('export'), None)
                     if exporter_class:
                         report_inlines = [ir(self, context_request) for ir in self.inlines]
-                        return exporter_class.render(self, column_labels, report_rows, report_inlines)
+                        exporter_object = exporter_class()
+                        return exporter_object.render(self, column_labels, report_rows, report_inlines)
 
             inlines = [ir(self, context_request) for ir in self.inlines]
+
 
             is_inline = self.parent_report is None
             render_report = not (len(report_rows) == 0 and is_inline)
@@ -469,6 +536,7 @@ class ReportAdmin(object):
                 'inline_column_span': 0 if is_inline else len(self.parent_report.get_column_names()),
                 'report': self,
                 'form_groupby': form_groupby,
+                'form_report_fields': form_report_fields,
                 'form_filter': form_filter,
                 'form_config': form_config if self.type == 'chart' else None,
                 'chart': chart,
@@ -520,11 +588,25 @@ class ReportAdmin(object):
         form.is_valid()
         return form
 
+    def get_report_fields(self):
+        return [(mfield, field, caption) for (mfield, field), caption in zip(self.model_fields, self.get_column_names()) if field in self.fields]
+
     def get_groupby_fields(self):
         return [(mfield, field, caption) for (mfield, field), caption in zip(self.model_fields, self.get_column_names()) if field in self.list_group_by]
 
     def get_serie_fields(self):
         return [(index, mfield, field, caption) for index, ((mfield, field), caption) in enumerate(zip(self.model_fields, self.get_column_names())) if field in self.list_serie_fields]
+
+    def get_form_report_fields(self, request):
+        report_fields = self.get_report_fields()
+
+        if not report_fields:
+            return None
+
+        ReportFieldsForm.report_fields = report_fields
+        form = ReportFieldsForm(data=request.GET or None)
+        form.is_valid()
+        return form
 
     def get_form_groupby(self, request):
         groupby_fields = self.get_groupby_fields()
@@ -552,7 +634,10 @@ class ReportAdmin(object):
 
     def get_form_filter(self, request):
         #form_fields = fields_for_model(self.model, [f for f in self.get_query_field_names() if f in self.list_filter])
+        # filters don't need to be fields to be reported (you can filter by date but do not print/show the date field)!
         form_fields = fields_for_model(self.model, [f for f in self.list_filter])
+        if 'id' in self.list_filter: # id is excluded by fields_for_model, i think
+            form_fields['id'] = None
         if not form_fields:
             form_fields = {
                 '__all__': forms.BooleanField(label='', widget=forms.HiddenInput, initial='1')
@@ -566,7 +651,10 @@ class ReportAdmin(object):
                     if '__' in k:
                         for field_lookup in k.split("__"):
                             if pre_field:
-                                if isinstance(pre_field, ForeignObjectRel):
+                                if isinstance(pre_field, ManyToOneRel):
+                                    base_model = pre_field.related_model
+                                    self.list_inline_filter.append(base_model._meta.get_field_by_name(field_lookup)[0])
+                                elif isinstance(pre_field, ForeignObjectRel):
                                     base_model = pre_field.model
                                 else:
                                     base_model = pre_field.rel.to
@@ -580,6 +668,9 @@ class ReportAdmin(object):
                     if isinstance(model_field, (DateField, DateTimeField)):
                         form_fields.pop(k)
                         field = RangeField(model_field.formfield)
+                    elif isinstance(model_field, AutoField):
+                        field = forms.CharField()
+                        field.label = self.override_field_labels.get(k, base_label)
                     else:
                         if not hasattr(model_field, 'formfield'):
                             field = forms.ModelChoiceField(queryset=model_field.model.objects.all())

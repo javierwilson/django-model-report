@@ -45,21 +45,19 @@ class FitSheetWrapper(object):
 
 class ExcelExporter(Exporter):
 
-    @classmethod
-    def render(cls, report, column_labels, report_rows, report_inlines):
-        book = Workbook(encoding='utf-8')
-        sheet1 = FitSheetWrapper(book.add_sheet(report.get_title()[:20]))
-        stylebold = easyxf('font: bold true; alignment:')
-        stylevalue = easyxf('alignment: horizontal left, vertical top;')
-        row_index = 0
-        for index, x in enumerate(column_labels):
-            sheet1.write(row_index, index, u'%s' % x, stylebold)
-        row_index += 1
+    def write_rows(self, column_labels, report_rows, report_inlines=None):
 
+        if not report_rows or report_rows[0][0]:
+            # FIXME: [0][0] is None when real data. Is this reliable?
+            return
+
+        for index, x in enumerate(column_labels):
+            self.sheet1.write(self.row_index, index, u'%s' % x, self.stylebold)
+        self.row_index += 1
         for g, rows in report_rows:
             if g:
-                sheet1.write(row_index, 0, u'%s' % x, stylebold)
-                row_index += 1
+                self.sheet1.write(self.row_index, 0, u'%s' % g, self.stylebold)
+                self.row_index += 1
             for row in list(rows):
                 if row.is_value():
                     for index, x in enumerate(row):
@@ -67,22 +65,40 @@ class ExcelExporter(Exporter):
                             xvalue = ''.join(['%s\n' % v for v in x.value])
                         else:
                             xvalue = x.text()
-                        sheet1.write(row_index, index, xvalue, stylevalue)
-                    row_index += 1
+                        self.sheet1.write(self.row_index, index, xvalue, self.stylevalue)
+                    self.row_index += 1
+
+                    if report_inlines:
+                        for inline in report_inlines:
+
+                            inline_context = inline.get_render_context({}, by_row=row)
+                            self.write_rows(inline_context['column_labels'], inline_context['report_rows'])
+
                 elif row.is_caption:
                     for index, x in enumerate(row):
                         if not isinstance(x, (unicode, str)):
-                            sheet1.write(row_index, index, x.text(), stylebold)
+                            self.sheet1.write(self.row_index, index, x.text(), self.stylebold)
                         else:
-                            sheet1.write(row_index, index, x, stylebold)
-                    row_index += 1
+                            self.sheet1.write(self.row_index, index, x, self.stylebold)
+                    self.row_index += 1
                 elif row.is_total:
                     for index, x in enumerate(row):
-                        sheet1.write(row_index, index, x.text(), stylebold)
-                        sheet1.write(row_index + 1, index, ' ')
-                    row_index += 2
+                        self.sheet1.write(self.row_index, index, x.text(), self.stylebold)
+                        self.sheet1.write(self.row_index + 1, index, ' ')
+                    self.row_index += 2
+
+
+    def render(self, report, column_labels, report_rows, report_inlines):
+        self.row_index = 0
+        self.sheet1 = FitSheetWrapper(self.book.add_sheet(report.get_title()[:20]))
+        self.write_rows(column_labels, report_rows, report_inlines)
 
         response = HttpResponse(content_type="application/ms-excel")
         response['Content-Disposition'] = 'attachment; filename=%s.xls' % report.slug
-        book.save(response)
+        self.book.save(response)
         return response
+
+    def __init__(self):
+        self.stylebold = easyxf('font: bold true; alignment:')
+        self.stylevalue = easyxf('alignment: horizontal left, vertical top;')
+        self.book = Workbook(encoding='utf-8')

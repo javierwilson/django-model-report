@@ -12,7 +12,6 @@ DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
-    ('juanpex', 'jpma55@gmail.com'),
 )
 
 MANAGERS = ADMINS
@@ -20,7 +19,7 @@ MANAGERS = ADMINS
 DATABASES = {
      'default': {
         'ENGINE': 'django.db.backends.sqlite3',  # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'model_report',                      # Or path to database file if using sqlite3.
+        'NAME': 'model_report.db',                      # Or path to database file if using sqlite3.
         # 'USER': '',                      # Not used with sqlite3.
         # 'PASSWORD': '',                  # Not used with sqlite3.
         # 'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
@@ -129,6 +128,8 @@ INSTALLED_APPS = (
     # 'django.contrib.admindocs',
     'model_report',
     'app',
+    # debug...
+    'django_extensions',
 )
 
 # A sample logging configuration. The only tangible logging
