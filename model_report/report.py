@@ -150,7 +150,7 @@ class ReportAdmin(object):
     list_serie_fields = ()
     """List of fields to group by results in chart."""
 
-    base_template_name = 'base.html'
+    base_template_name = '_base.html'
     """Template file name to render the report."""
 
     template_name = 'model_report/report.html'
@@ -391,6 +391,9 @@ class ReportAdmin(object):
                             field_value = field_value[0]
                     else:
                         pass
+                # adds filter op from list_filter_op dict
+                if selected_field in self.list_filter_op:
+                    selected_field = "%s__%s"  % (selected_field, self.list_filter_op[selected_field])
                 qs = qs.filter(Q(**{selected_field: field_value}))
         self.query_set = qs.distinct()
         return self.query_set
