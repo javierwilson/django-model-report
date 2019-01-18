@@ -5,7 +5,7 @@ from itertools import groupby
 
 import django
 from django.http import HttpResponse
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.template import RequestContext
 from django.utils.translation import ugettext_lazy as _
 from django.db.models.fields import DateTimeField, DateField, AutoField
@@ -167,7 +167,7 @@ class ReportAdmin(object):
     list_serie_fields = ()
     """List of fields to group by results in chart."""
 
-    base_template_name = '_base.html'
+    base_template_name = 'base.html'
     """Template file name to render the report."""
 
     template_name = 'model_report/report.html'
@@ -258,24 +258,25 @@ class ReportAdmin(object):
                     base_model = self.model
                     for field_lookup in field.split("__"):
                         if not pre_field:
-                            pre_field, _, _, is_m2m = base_model._meta.get_field_by_name(field_lookup)
+                            pre_field = base_model._meta.get_field(field_lookup)
+                            is_m2m = pre_field.many_to_many
                             if is_m2m:
                                 m2mfields.append(pre_field)
                         elif isinstance(pre_field, ForeignObjectRel):
                             base_model = pre_field.model
-                            pre_field = base_model._meta.get_field_by_name(field_lookup)[0]
+                            pre_field = base_model._meta.get_field(field_lookup)
                         else:
                             if is_date_field(pre_field):
                                 pre_field = pre_field
                             else:
                                 base_model = pre_field.rel.to
-                                pre_field = base_model._meta.get_field_by_name(field_lookup)[0]
+                                pre_field = base_model._meta.get_field(field_lookup)
                     model_field = pre_field
                 else:
                     if field in self.extra_fields:
                         model_field = self.extra_fields[field]
                     elif not 'self.' in field:
-                        model_field = self.model._meta.get_field_by_name(field)[0]
+                        model_field = self.model._meta.get_field(field)
                     else:
                         get_attr = lambda s: getattr(s, field.split(".")[1])
                         get_attr.verbose_name = field
@@ -289,8 +290,9 @@ class ReportAdmin(object):
         self.model_m2m_fields = model_m2m_fields
 
         if parent_report: # meaning: this is parent report
-            self.related_inline_field = [f for f, x in self.model._meta.get_fields_with_model() if f.rel and hasattr(f.rel, 'to') and f.rel.to is self.parent_report.model][0]
-            self.related_inline_accessor = self.related_inline_field.related.get_accessor_name()
+            self.related_inline_field = [f for f in self.model._meta.get_fields() if f.rel and hasattr(f.rel, 'to') and f.rel.to is self.parent_report.model][0]
+            if hasattr(self.related_inline_field, 'related'):
+                self.related_inline_accessor = self.related_inline_field.related.get_accessor_name()
             self.related_fields = ["%s__%s" % (get_model_name(pfield.model), attname) for pfield, attname in self.parent_report.model_fields if not isinstance(pfield, (str, unicode)) and  pfield.model == self.related_inline_field.rel.to]
             self.related_inline_filters = []
 
@@ -423,7 +425,7 @@ class ReportAdmin(object):
                     else:
                         pass
                 # adds filter op from list_filter_op dict
-                if selected_field in self.list_filter_op:
+                if hasattr(self, 'list_filter_op') and selected_field in self.list_filter_op:
                     selected_field = "%s__%s"  % (selected_field, self.list_filter_op[selected_field])
                 qs = qs.filter(Q(**{selected_field: field_value}))
         self.query_set = qs.distinct()
@@ -566,8 +568,7 @@ class ReportAdmin(object):
 
         if isinstance(context_or_response, HttpResponse):
             return context_or_response
-        return render_to_response(self.template_name, context_or_response,
-                                  context_instance=RequestContext(request))
+        return render(request, self.template_name, context_or_response)
 
     def has_report_totals(self):
         return not (not self.report_totals)
@@ -653,17 +654,17 @@ class ReportAdmin(object):
                             if pre_field:
                                 if isinstance(pre_field, ManyToOneRel):
                                     base_model = pre_field.related_model
-                                    self.list_inline_filter.append(base_model._meta.get_field_by_name(field_lookup)[0])
+                                    self.list_inline_filter.append(base_model._meta.get_field(field_lookup))
                                 elif isinstance(pre_field, ForeignObjectRel):
                                     base_model = pre_field.model
                                 else:
                                     base_model = pre_field.rel.to
-                            pre_field = base_model._meta.get_field_by_name(field_lookup)[0]
+                            pre_field = base_model._meta.get_field(field_lookup)
 
                         model_field = pre_field
                     else:
                         field_name = k.split("__")[0]
-                        model_field = opts.get_field_by_name(field_name)[0]
+                        model_field = opts.get_field(field_name)
 
                     if isinstance(model_field, (DateField, DateTimeField)):
                         form_fields.pop(k)
@@ -715,7 +716,7 @@ class ReportAdmin(object):
                         setattr(field, 'as_boolean', True)
                     elif isinstance(v, (forms.DateField, forms.DateTimeField)):
                         field_name = k.split("__")[0]
-                        model_field = opts.get_field_by_name(field_name)[0]
+                        model_field = opts.get_field(field_name)
                         form_fields.pop(k)
                         field = RangeField(model_field.formfield)
                     else:

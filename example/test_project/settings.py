@@ -9,7 +9,6 @@ sys.path.append(PROJECT_ABSOLUTE_DIR)
 sys.path.append(join(PROJECT_ABSOLUTE_DIR, '../', '../'))
 
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
 )
@@ -91,11 +90,11 @@ STATICFILES_FINDERS = (
 SECRET_KEY = '2osg$e27e)_r=%r3xmb&amp;6jq2%47f5adlc$=+#qiw26-+!(!o+!'
 
 # List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader',
+#TEMPLATE_LOADERS = (
+#    'django.template.loaders.filesystem.Loader',
+#    'django.template.loaders.app_directories.Loader',
 #     'django.template.loaders.eggs.Loader',
-)
+#)
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
@@ -113,7 +112,21 @@ ROOT_URLCONF = 'test_project.urls'
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'test_project.wsgi.application'
 
-TEMPLATE_DIRS = [join(PROJECT_ABSOLUTE_DIR, 'templates')]
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'debug': True,
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
 
 INSTALLED_APPS = (
     'django.contrib.auth',
@@ -128,8 +141,6 @@ INSTALLED_APPS = (
     # 'django.contrib.admindocs',
     'model_report',
     'app',
-    # debug...
-    'django_extensions',
 )
 
 # A sample logging configuration. The only tangible logging
@@ -154,6 +165,8 @@ LOGGING = {
         },
     }
 }
+
+ALLOWED_HOSTS = ['*']
 
 try:
     from local_settings import *

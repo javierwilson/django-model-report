@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.template import RequestContext
 from django.http import Http404
 from django.contrib.auth.decorators import login_required
@@ -14,11 +14,11 @@ def report_list(request):
     context = {
         'report_list': reports.get_reports()
     }
-    return render_to_response('model_report/report_list.html', context,
-                              context_instance=RequestContext(request))
+    from django.conf import settings
+    return render(request, 'model_report/report_list.html', context)
 
 
-@login_required
+#@login_required
 def report(request, slug):
     """
     This view render one report
